@@ -1,0 +1,588 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Analytics Dashboard</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f3f6fb;
+            color: #202b3c;
+        }
+
+        header {
+            background: #142d4e;
+            color: white;
+            padding: 28px 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0 0 8px;
+        }
+
+        header p {
+            margin: 0;
+            color: #d7e4f5;
+        }
+
+        .container {
+            max-width: 1050px;
+            margin: 30px auto;
+            padding: 0 18px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 22px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            flex: 1;
+            min-width: 220px;
+            padding: 15px;
+            border: none;
+            border-radius: 9px;
+            background: #dce5f1;
+            color: #142d4e;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .tab.active {
+            background: #1769aa;
+            color: white;
+        }
+
+        .panel {
+            display: none;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 18px #0000000c;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        .panel h2 {
+            margin-top: 0;
+        }
+
+        .fields {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 17px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            background: white;
+            font-size: 14px;
+        }
+
+        .submit {
+            width: 100%;
+            margin-top: 22px;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            background: #1769aa;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .submit:hover {
+            background: #10548b;
+        }
+
+        .result {
+            margin-bottom: 22px;
+            padding: 16px;
+            background: #e6f5eb;
+            border-left: 5px solid #239653;
+            border-radius: 7px;
+            overflow-wrap: anywhere;
+        }
+
+        .error {
+            margin-bottom: 22px;
+            padding: 16px;
+            background: #fff0f0;
+            border-left: 5px solid #d33;
+            border-radius: 7px;
+            overflow-wrap: anywhere;
+        }
+
+        .hint {
+            color: #64748b;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        footer {
+            text-align: center;
+            padding: 22px;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        @media (max-width: 600px) {
+            .fields {
+                grid-template-columns: 1fr;
+            }
+
+            .panel {
+                padding: 18px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Customer Analytics Dashboard</h1>
+    <p>Customer Churn Prediction & Monthly Charges Regression</p>
+</header>
+
+<div class="container">
+
+    {% if result %}
+        <div class="result">
+            <strong>Prediction Result</strong>
+            <p>{{ result }}</p>
+
+            {% if probability is not none %}
+                <p>Model confidence for its predicted class: {{ probability }}%</p>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% if error %}
+        <div class="error">
+            <strong>Error:</strong> {{ error }}
+        </div>
+    {% endif %}
+
+    <div class="tabs">
+        <button type="button" class="tab active"
+                onclick="showTab('churn', this)">
+            Customer Churn Prediction
+        </button>
+
+        <button type="button" class="tab"
+                onclick="showTab('regression', this)">
+            Monthly Charges Regression
+        </button>
+    </div>
+
+    <!-- CUSTOMER CHURN FORM -->
+    <section id="churn" class="panel active">
+        <h2>Customer Churn Prediction</h2>
+        <p class="hint">
+            Enter customer details to predict whether the customer is
+            likely to leave the service.
+        </p>
+
+        <form method="POST">
+            <input type="hidden" name="mode" value="churn">
+
+            <div class="fields">
+
+                <div class="field">
+                    <label>Gender</label>
+                    <select name="gender" required>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Senior Citizen</label>
+                    <select name="SeniorCitizen" required>
+                        <option value="0">No</option>
+                        <option value="1">Yes</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Partner</label>
+                    <select name="Partner" required>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Dependents</label>
+                    <select name="Dependents" required>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Tenure (months)</label>
+                    <input type="number" name="tenure"
+                           min="0" max="100" value="12" required>
+                </div>
+
+                <div class="field">
+                    <label>Phone Service</label>
+                    <select name="PhoneService" required>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Multiple Lines</label>
+                    <select name="MultipleLines" required>
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No phone service">No phone service</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Internet Service</label>
+                    <select name="InternetService" required>
+                        <option value="DSL">DSL</option>
+                        <option value="Fiber optic">Fiber optic</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Online Security</label>
+                    <select name="OnlineSecurity" required>
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No internet service">No internet service</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Online Backup</label>
+                    <select name="OnlineBackup" required>
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No internet service">No internet service</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Device Protection</label>
+                    <select name="DeviceProtection" required>
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No internet service">No internet service</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Tech Support</label>
+                    <select name="TechSupport" required>
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No internet service">No internet service</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Streaming TV</label>
+                    <select name="StreamingTV" required>
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No internet service">No internet service</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Streaming Movies</label>
+                    <select name="StreamingMovies" required>
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No internet service">No internet service</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Contract</label>
+                    <select name="Contract" required>
+                        <option value="Month-to-month">Month-to-month</option>
+                        <option value="One year">One year</option>
+                        <option value="Two year">Two year</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Paperless Billing</label>
+                    <select name="PaperlessBilling" required>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Payment Method</label>
+                    <select name="PaymentMethod" required>
+                        <option value="Electronic check">Electronic check</option>
+                        <option value="Mailed check">Mailed check</option>
+                        <option value="Bank transfer (automatic)">Bank transfer (automatic)</option>
+                        <option value="Credit card (automatic)">Credit card (automatic)</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Monthly Charges ($)</label>
+                    <input type="number" name="MonthlyCharges"
+                           min="0" step="0.01" value="70" required>
+                </div>
+
+                <div class="field">
+                    <label>Total Charges ($)</label>
+                    <input type="number" name="TotalCharges"
+                           min="0" step="0.01" value="840" required>
+                </div>
+
+            </div>
+
+            <button class="submit" type="submit">
+                Predict Customer Churn
+            </button>
+        </form>
+    </section>
+
+    <!-- REGRESSION FORM -->
+    <section id="regression" class="panel">
+        <h2>Monthly Charges Regression</h2>
+        <p class="hint">
+            Enter customer details to estimate monthly service charges
+            using the trained Linear Regression model.
+        </p>
+
+        <form method="POST">
+            <input type="hidden" name="mode" value="regression">
+
+            <div class="fields">
+
+                <div class="field">
+                    <label>Gender</label>
+                    <select name="gender" required>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Senior Citizen</label>
+                    <select name="SeniorCitizen" required>
+                        <option value="0">No</option>
+                        <option value="1">Yes</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Partner</label>
+                    <select name="Partner" required>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Dependents</label>
+                    <select name="Dependents" required>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Tenure (months)</label>
+                    <input type="number" name="tenure"
+                           min="0" max="100" value="12" required>
+                </div>
+
+                <div class="field">
+                    <label>Phone Service</label>
+                    <select name="PhoneService" required>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Multiple Lines</label>
+                    <select name="MultipleLines" required>
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No phone service">No phone service</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Internet Service</label>
+                    <select name="InternetService" required>
+                        <option value="DSL">DSL</option>
+                        <option value="Fiber optic">Fiber optic</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Online Security</label>
+                    <select name="OnlineSecurity" required>
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No internet service">No internet service</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Online Backup</label>
+                    <select name="OnlineBackup" required>
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No internet service">No internet service</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Device Protection</label>
+                    <select name="DeviceProtection" required>
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No internet service">No internet service</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Tech Support</label>
+                    <select name="TechSupport" required>
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No internet service">No internet service</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Streaming TV</label>
+                    <select name="StreamingTV" required>
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No internet service">No internet service</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Streaming Movies</label>
+                    <select name="StreamingMovies" required>
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No internet service">No internet service</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Contract</label>
+                    <select name="Contract" required>
+                        <option value="Month-to-month">Month-to-month</option>
+                        <option value="One year">One year</option>
+                        <option value="Two year">Two year</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Paperless Billing</label>
+                    <select name="PaperlessBilling" required>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Payment Method</label>
+                    <select name="PaymentMethod" required>
+                        <option value="Electronic check">Electronic check</option>
+                        <option value="Mailed check">Mailed check</option>
+                        <option value="Bank transfer (automatic)">Bank transfer (automatic)</option>
+                        <option value="Credit card (automatic)">Credit card (automatic)</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Total Charges ($)</label>
+                    <input type="number" name="TotalCharges"
+                           min="0" step="0.01" value="840" required>
+                </div>
+
+            </div>
+
+            <button class="submit" type="submit">
+                Predict Monthly Charges
+            </button>
+        </form>
+    </section>
+
+</div>
+
+<footer>
+    Customer Analytics Dashboard | Machine Learning Project
+</footer>
+
+<script>
+    function showTab(tabId, button) {
+        document.querySelectorAll(".panel").forEach(function(panel) {
+            panel.classList.remove("active");
+        });
+
+        document.querySelectorAll(".tab").forEach(function(tab) {
+            tab.classList.remove("active");
+        });
+
+        document.getElementById(tabId).classList.add("active");
+        button.classList.add("active");
+    }
+
+    // Keep the correct form open after submitting.
+    const submittedMode = "{{ form_data.get('mode', 'churn') }}";
+
+    if (submittedMode === "regression") {
+        const regressionButton = document.querySelectorAll(".tab")[1];
+        showTab("regression", regressionButton);
+    }
+</script>
+
+</body>
+</html>
